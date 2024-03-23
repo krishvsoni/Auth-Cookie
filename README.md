@@ -1,0 +1,1 @@
+Authenticate API with cookies
