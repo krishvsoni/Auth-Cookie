@@ -4,7 +4,7 @@ import cors from "cors";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import path from "path";
 
-const JWT_SECRET = "test123";
+const JWT_SECRET = "process.env.JWT_SECRET";
 
 const app = express();
 app.use(cookieParser());
