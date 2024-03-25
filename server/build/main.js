@@ -18,6 +18,7 @@ const cors_1 = __importDefault(require("cors"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const bcrypt_1 = __importDefault(require("bcrypt"));
 dotenv_1.default.config();
 const JWT_SECRET = 'process.env.JWT_SECRET';
 const DATABASE_URI = process.env.DATABASE_URI;
@@ -50,15 +51,28 @@ app.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     if (!JWT_SECRET) {
         return res.status(500).send("JWT secret is not provided");
     }
-    const user = yield UserModel.findOne({ email, password }).exec();
-    if (!user) {
-        return res.status(401).send("Invalid email or password");
+    try {
+        const user = yield UserModel.findOne({ email }).exec();
+        if (!user) {
+            return res.status(401).send("Invalid email or password");
+        }
+        if (!user.password) {
+            return res.status(401).send("Invalid email or password");
+        }
+        const passwordMatch = yield bcrypt_1.default.compare(password, user.password);
+        if (!passwordMatch) {
+            return res.status(401).send("Invalid email or password");
+        }
+        const token = jsonwebtoken_1.default.sign({
+            id: user._id
+        }, JWT_SECRET);
+        res.cookie("token", token);
+        res.send("Logged In");
     }
-    const token = jsonwebtoken_1.default.sign({
-        id: user._id
-    }, JWT_SECRET);
-    res.cookie("token", token);
-    res.send("Logged In");
+    catch (error) {
+        console.error("Error signing in:", error);
+        res.status(500).send("Internal server error");
+    }
 }));
 app.post('/signup', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
@@ -70,7 +84,8 @@ app.post('/signup', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         if (existingUser) {
             return res.status(400).send("User already exists");
         }
-        const newUser = new UserModel({ email, password });
+        const hashedPassword = yield bcrypt_1.default.hash(password, 10);
+        const newUser = new UserModel({ email, password: hashedPassword });
         yield newUser.save();
         res.status(201).send("User created successfully");
     }

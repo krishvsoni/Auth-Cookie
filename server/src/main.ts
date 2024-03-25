@@ -4,6 +4,7 @@ import cors from "cors";
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import bcrypt from "bcrypt";
 
 dotenv.config();
 
@@ -47,18 +48,33 @@ app.post('/signin', async (req, res) => {
         return res.status(500).send("JWT secret is not provided");
     }
 
-    const user = await UserModel.findOne({ email, password }).exec();
-    if (!user) {
-        return res.status(401).send("Invalid email or password");
+    try {
+        const user = await UserModel.findOne({ email }).exec();
+        if (!user) {
+            return res.status(401).send("Invalid email or password");
+        }
+
+        if (!user.password) {
+            return res.status(401).send("Invalid email or password");
+        }
+
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        if (!passwordMatch) {
+            return res.status(401).send("Invalid email or password");
+        }
+
+        const token = jwt.sign({
+            id: user._id
+        }, JWT_SECRET);
+
+        res.cookie("token", token);
+        res.send("Logged In");
+    } catch (error) {
+        console.error("Error signing in:", error);
+        res.status(500).send("Internal server error");
     }
-
-    const token = jwt.sign({
-        id: user._id
-    }, JWT_SECRET);
-
-    res.cookie("token", token);
-    res.send("Logged In");
 });
+
 
 
 app.post('/signup', async (req, res) => {
@@ -74,7 +90,9 @@ app.post('/signup', async (req, res) => {
             return res.status(400).send("User already exists");
         }
 
-        const newUser = new UserModel({ email, password });
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newUser = new UserModel({ email, password: hashedPassword });
         await newUser.save();
 
         res.status(201).send("User created successfully");
@@ -83,6 +101,7 @@ app.post('/signup', async (req, res) => {
         res.status(500).send("Internal server error");
     }
 });
+
 
 
 app.get('/users', async (req, res) => {
@@ -110,6 +129,7 @@ app.get('/users', async (req, res) => {
         res.status(401).send("Invalid token");
     }
 });
+
 
 app.post('/logout', (req, res) => {
     res.clearCookie("token");
