@@ -20,7 +20,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 dotenv_1.default.config();
-const JWT_SECRET = 'process.env.JWT_SECRET';
+const JWT_SECRET = process.env.JWT_SECRET;
 const DATABASE_URI = process.env.DATABASE_URI;
 if (!DATABASE_URI) {
     console.error("DATABASE_URI is not provided in the environment variables");

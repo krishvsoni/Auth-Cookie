@@ -8,7 +8,7 @@ import bcrypt from "bcrypt";
 
 dotenv.config();
 
-const JWT_SECRET = 'process.env.JWT_SECRET';
+const JWT_SECRET = process.env.JWT_SECRET;
 const DATABASE_URI = process.env.DATABASE_URI;
 
 if (!DATABASE_URI) {
